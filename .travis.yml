@@ -4,7 +4,7 @@ jdk: oraclejdk7
 services:
   - mysql
   - postgresql
-python: 
+python:
   - "2.7"
 env:
   - TOX_ENV=py27-cdh
@@ -17,3 +17,4 @@ before_script:
 script:
   - tox --version
   - travis_wait ./run_tox.sh
+  - bash run_unit_tests.sh
