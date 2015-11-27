@@ -16,7 +16,7 @@ import pyhs2
 from airflow.utils import AirflowException
 from airflow.hooks.base_hook import BaseHook
 from airflow.utils import TemporaryDirectory
-from airflow.configuration import conf
+from airflow import configuration
 import airflow.security.utils as utils
 
 class HiveCliHook(BaseHook):
@@ -31,6 +31,10 @@ class HiveCliHook(BaseHook):
     Note that you can also set default hive CLI parameters using the
     ``hive_cli_params`` to be used in your connection as in
     ``{"hive_cli_params": "-hiveconf mapred.job.tracker=some.jobtracker:444"}``
+
+    The extra connection parameter ``auth`` gets passed as in the ``jdbc``
+    connection string as is.
+
     """
 
     def __init__(
@@ -40,6 +44,7 @@ class HiveCliHook(BaseHook):
         conn = self.get_connection(hive_cli_conn_id)
         self.hive_cli_params = conn.extra_dejson.get('hive_cli_params', '')
         self.use_beeline = conn.extra_dejson.get('use_beeline', False)
+        self.auth = conn.extra_dejson.get('auth', 'noSasl')
         self.conn = conn
         self.run_as = run_as
 
@@ -67,9 +72,11 @@ class HiveCliHook(BaseHook):
 
                 if self.use_beeline:
                     hive_bin = 'beeline'
-                    if conf.get('core', 'security') == 'kerberos':
-                        template = conn.extra_dejson.get('principal',"hive/_HOST@EXAMPLE.COM")
-                        template = utils.replace_hostname_pattern(utils.get_components(template))
+                    jdbc_url = "jdbc:hive2://{conn.host}:{conn.port}/{conn.schema}"
+                    if configuration.get('core', 'security') == 'kerberos':
+                        template = conn.extra_dejson.get('principal', "hive/_HOST@EXAMPLE.COM")
+                        if "_HOST" in template:
+                            template = utils.replace_hostname_pattern(utils.get_components(template))
 
                         proxy_user = ""
                         if conn.extra_dejson.get('proxy_user') == "login" and conn.login:
@@ -77,17 +84,11 @@ class HiveCliHook(BaseHook):
                         elif conn.extra_dejson.get('proxy_user') == "owner" and self.run_as:
                             proxy_user = "hive.server2.proxy.user={0}".format(self.run_as)
 
-                        jdbc_url = (
-                            "jdbc:hive2://"
-                            "{0}:{1}/{2}"
-                            ";principal={3}{4}"
-                        ).format(conn.host, conn.port, conn.schema, template, proxy_user)
-                    else:
-                        jdbc_url = (
-                            "jdbc:hive2://"
-                            "{0}:{1}/{2}"
-                            ";auth=noSasl"
-                        ).format(conn.host, conn.port, conn.schema)
+                        jdbc_url += ";principal={template};{proxy_user}"
+                    elif self.auth:
+                        jdbc_url += ";auth=" + self.auth
+
+                    jdbc_url = jdbc_url.format(**locals())
 
                     cmd_extra += ['-u', jdbc_url]
                     if conn.login:
@@ -407,7 +408,7 @@ class HiveServer2Hook(BaseHook):
     def get_conn(self):
         db = self.get_connection(self.hiveserver2_conn_id)
         auth_mechanism = db.extra_dejson.get('authMechanism', 'NOSASL')
-        if conf.get('core', 'security') == 'kerberos':
+        if configuration.get('core', 'security') == 'kerberos':
             auth_mechanism = db.extra_dejson.get('authMechanism', 'KERBEROS')
 
         return pyhs2.connect(

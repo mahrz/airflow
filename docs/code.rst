@@ -1,5 +1,5 @@
-Code / API
-==========
+API Reference
+=============
 
 Operators
 ---------
@@ -48,6 +48,7 @@ Operator API
     :members:
         BashOperator,
         BranchPythonOperator,
+        TriggerDagRunOperator,
         DummyOperator,
         EmailOperator,
         ExternalTaskSensor,
@@ -60,6 +61,7 @@ Operator API
         HiveToMySqlTransfer,
         SimpleHttpOperator,
         HttpSensor,
+        MetastorePartitionSensor,
         MsSqlOperator,
         MsSqlToHiveTransfer,
         MySqlOperator,
@@ -71,11 +73,13 @@ Operator API
         PythonOperator,
         S3KeySensor,
         S3ToHiveTransfer,
+        ShortCircuitOperator,
         SlackAPIOperator,
         SlackAPIPostOperator,
         SqlSensor,
         SubDagOperator,
-        TimeSensor
+        TimeSensor,
+        WebHdfsSensor
 
 
 Community-contributed Operators
@@ -122,6 +126,10 @@ Variable                            Description
                                     ``airflow.configuration.conf`` which
                                     represents the content of your
                                     ``airflow.cfg``
+``run_id``                          the ``run_id`` of the current DAG run
+``dag_run``                         a reference to the DAG run object
+``test_mode``                       whether the task instance was called using
+                                    the CLI's test subcommand
 =================================   ====================================
 
 Note that you can access the object's attributes and methods with simple
@@ -132,7 +140,26 @@ attributes and methods.
 
 Macros
 ''''''
-These macros live under the ``macros`` namespace in your templates.
+Macros are a way to expose objects to your templates and live under the 
+``macros`` namespace in your templates.
+
+A few commonly used libraries and methods are made available.
+
+=================================   ====================================
+Variable                            Description
+=================================   ====================================
+``macros.datetime``                 The standard lib's 
+                                    ``datetime.datetime``
+``macros.timedelta``                 The standard lib's 
+                                    ``datetime.timedelta``
+``macros.dateutil``                 A reference to the ``dateutil``
+                                    package
+``macros.time``                     The standard lib's ``time``
+``macros.uuid``                     The standard lib's ``uuid``
+``macros.random``                   The standard lib's ``random``
+=================================   ====================================
+
+Some airflow specific macros are also defined:
 
 .. automodule:: airflow.macros
     :show-inheritance:
@@ -171,7 +198,8 @@ Hooks
         PostgresHook,
         PrestoHook,
         S3Hook,
-        SqliteHook
+        SqliteHook,
+        WebHDFSHook
 
 Community contributed hooks
 '''''''''''''''''''''''''''

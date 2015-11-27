@@ -23,7 +23,7 @@ class MySqlHook(DbApiHook):
         conn = self.get_connection(self.mysql_conn_id)
         conn_config = {
             "user": conn.login,
-            "passwd": conn.password
+            "passwd": conn.password or ''
         }
 
         conn_config["host"] = conn.host or 'localhost'
@@ -31,8 +31,9 @@ class MySqlHook(DbApiHook):
             conn_config["port"] = 3306
         else:
             conn_config["port"] = int(conn.port)
-        if conn.schema:
-            conn_config["db"] = conn.schema
+
+        conn_config["db"] = conn.schema or ''
+
         if conn.extra_dejson.get('charset', False):
             conn_config["charset"] = conn.extra_dejson["charset"]
             if (conn_config["charset"]).lower() == 'utf8' or\
@@ -46,6 +47,8 @@ class MySqlHook(DbApiHook):
             elif (conn.extra_dejson["cursor"]).lower() == 'ssdictcursor':
                 conn_config["cursorclass"] = MySQLdb.cursors.SSDictCursor
         local_infile = conn.extra_dejson.get('local_infile',False)
+        if conn.extra_dejson.get('ssl', False):
+            conn_config['ssl'] = conn.extra_dejson['ssl']
         if local_infile:
             conn_config["local_infile"] = 1
         conn = MySQLdb.connect(**conn_config)

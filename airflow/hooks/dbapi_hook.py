@@ -1,3 +1,4 @@
+
 from builtins import str
 from past.builtins import basestring
 from datetime import datetime
@@ -32,7 +33,8 @@ class DbApiHook(BaseHook):
             setattr(self, self.conn_name_attr, kwargs[self.conn_name_attr])
 
     def get_conn(self):
-        """Returns a connection object"""
+        """Returns a connection object
+        """
         db = self.get_connection(getattr(self, self.conn_name_attr))
         return self.connector.connect(
             host=db.host,
@@ -57,7 +59,10 @@ class DbApiHook(BaseHook):
         '''
         conn = self.get_conn()
         cur = self.get_cursor()
-        cur.execute(sql, parameters)
+        if parameters is not None:
+            cur.execute(sql, parameters)
+        else:
+            cur.execute(sql)
         rows = cur.fetchall()
         cur.close()
         conn.close()
@@ -69,7 +74,10 @@ class DbApiHook(BaseHook):
         '''
         conn = self.get_conn()
         cur = conn.cursor()
-        cur.execute(sql, parameters)
+        if parameters is not None:
+            cur.execute(sql, parameters)
+        else:
+            cur.execute(sql)
         rows = cur.fetchone()
         cur.close()
         conn.close()
@@ -95,7 +103,10 @@ class DbApiHook(BaseHook):
         cur = conn.cursor()
         for s in sql:
             logging.info(s)
-            cur.execute(s, parameters)
+            if parameters is not None:
+                cur.execute(s, parameters)
+            else:
+                cur.execute(s)
         cur.close()
         conn.commit()
         conn.close()
@@ -104,7 +115,9 @@ class DbApiHook(BaseHook):
         conn.autocommit = autocommit
 
     def get_cursor(self):
-        """Returns a cursor"""
+        """
+        Returns a cursor
+        """
         return self.get_conn().cursor()
 
     def insert_rows(self, table, rows, target_fields=None, commit_every=1000):
@@ -158,4 +171,4 @@ class DbApiHook(BaseHook):
         """
         Loads a tab-delimited file into a database table
         """
-        raise NotImplemented()
+        raise NotImplementedError()
